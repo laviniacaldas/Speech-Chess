@@ -3,12 +3,9 @@
 A real-time voice-controlled chess game built with Python Flask and Web Speech API. Play chess by speaking move commands!
 
 ## Features
-- ♟️ Interactive chess board display
-- 🎤 Real-time voice recognition for chess moves
-- 🌐 Web-based interface (works in modern browsers)
-- 📝 Move history tracking
-- 🎨 Beautiful, responsive UI
-- ✓ Automatic chess move validation
+- Real-time voice recognition for chess moves
+- Web-based interface
+- Automatic chess move validation
 
 ## How to Play
 
@@ -64,15 +61,15 @@ Navigate to: `http://localhost:5000`
 ## How to Use
 
 1. **Allow Microphone Access** - When prompted, allow the browser to access your microphone
-2. **Click "🎤 Start Listening"** - Begin recording your voice command
+2. **Click "Start Listening"** - Begin recording your voice command
 3. **Speak Your Move** - Say the move clearly (e.g., "e2 e4")
 4. **Click "Stop Listening"** - The app will process your speech and make the move
 5. **View the Result** - The board updates with your move, and the history shows what was recognized
 
 ## Controls
-- **🎤 Start Listening** - Begin voice input
+- **Start Listening** - Begin voice input
 - **Stop Listening** - End recording and process the move
-- **↻ Reset Board** - Return to starting position and clear move history
+- **Reset Board** - Return to starting position and clear move history
 
 ## Board Display
 - Light squares: #f0d9b5
