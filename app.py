@@ -230,70 +230,43 @@ def recognize_speech():
                 'feedback': None
             }
             
-            if to_square:
-                # If from_square provided, try directly. Otherwise try to infer from legal moves.
-                target_index = chess.parse_square(to_square)
-
-                # If from_square given, validate and try move
-                if from_square:
-                    from_square_index = chess.parse_square(from_square)
-                    piece = board.piece_at(from_square_index)
-
-                    if piece is None:
-                        move_result['error'] = f"No piece on {from_square}"
-                        move_result['board'] = board.fen()
-                    elif piece.color == chess.WHITE and current_player != 'white':
-                        move_result['error'] = f"It's Black's turn! You're playing White."
-                        move_result['board'] = board.fen()
-                    elif piece.color == chess.BLACK and current_player != 'black':
-                        move_result['error'] = f"It's White's turn! You're playing Black."
-                        move_result['board'] = board.fen()
-                    else:
-                        move = move_to_uci(from_square, to_square)
-                        if move and move in board.legal_moves:
-                            board.push(move)
-                            move_result['move'] = str(move)
-                            move_result['feedback'] = f"✓ {piece_name.title() if piece_name else 'Piece'} moved from {from_square} to {to_square}"
-                            current_player = 'black' if current_player == 'white' else 'white'
-                            move_result['current_player'] = current_player
-                            move_result['board'] = board.fen()
-                        else:
-                            move_result['error'] = f"Illegal move: {from_square} to {to_square}"
-                            move_result['board'] = board.fen()
+            if from_square and to_square:
+                # Validate it's the correct player's turn
+                from_square_index = chess.parse_square(from_square)
+                piece = board.piece_at(from_square_index)
+                
+                if piece is None:
+                    move_result['error'] = f"No piece on {from_square}"
+                    move_result['board'] = board.fen()
+                elif piece.color == chess.WHITE and current_player != 'white':
+                    move_result['error'] = f"It's Black's turn! You're playing White."
+                    move_result['board'] = board.fen()
+                elif piece.color == chess.BLACK and current_player != 'black':
+                    move_result['error'] = f"It's White's turn! You're playing Black."
+                    move_result['board'] = board.fen()
                 else:
-                    # No from_square provided: find all legal moves that go to target
-                    candidate_moves = []
-                    for m in board.legal_moves:
-                        if m.to_square == target_index:
-                            p = board.piece_at(m.from_square)
-                            if p and ((p.color == chess.WHITE and current_player == 'white') or (p.color == chess.BLACK and current_player == 'black')):
-                                candidate_moves.append(m)
-
-                    # If piece_name provided, filter by piece type
-                    if piece_name and candidate_moves:
-                        wanted_symbol = PIECE_NAMES.get(piece_name)
-                        if wanted_symbol:
-                            filtered = [m for m in candidate_moves if board.piece_at(m.from_square).symbol().lower() == wanted_symbol]
-                            candidate_moves = filtered
-
-                    if len(candidate_moves) == 1:
-                        move = candidate_moves[0]
+                    # Try to create a valid move
+                    move = move_to_uci(from_square, to_square)
+                    
+                    if move and move in board.legal_moves:
+                        # Make the move
                         board.push(move)
                         move_result['move'] = str(move)
-                        move_result['feedback'] = f"✓ moved to {to_square}"
+                        move_result['feedback'] = f"✓ {piece_name.title() if piece_name else 'Piece'} moved from {from_square} to {to_square}"
+                        
+                        # Switch player
                         current_player = 'black' if current_player == 'white' else 'white'
                         move_result['current_player'] = current_player
-                        move_result['board'] = board.fen()
-                    elif len(candidate_moves) > 1:
-                        move_result['error'] = "Multiple pieces can move to that square. Please specify the piece (e.g., 'knight c3' or 'b1 c3')."
+                        
+                        # Set board AFTER move is made
                         move_result['board'] = board.fen()
                     else:
-                        move_result['error'] = f"No legal moves to {to_square}"
+                        move_result['error'] = f"Illegal move: {from_square} to {to_square}"
                         move_result['board'] = board.fen()
             else:
                 move_result['feedback'] = "Didn't detect a valid move. Try: 'e2 e4' or 'pawn from e2 to e4'"
                 move_result['board'] = board.fen()
-
+            
             return jsonify(move_result)
             
         except sr.UnknownValueError:
