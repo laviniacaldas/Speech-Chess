@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Chess</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .chessboard {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0;
+            border: 3px solid #333;
+            background: #333;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+
+        .square.light {
+            background-color: #f0d9b5;
+        }
+
+        .square.dark {
+            background-color: #b58863;
+        }
+
+        .square.highlight {
+            background-color: #baca44;
+            animation: pulse-highlight 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-highlight {
+            0%, 100% { box-shadow: inset 0 0 0 0 rgba(186, 202, 68, 0.7); }
+            50% { box-shadow: inset 0 0 20px 0 rgba(186, 202, 68, 0.7); }
+        }
+
+        .piece {
+            cursor: grab;
+            transition: transform 0.1s;
+        }
+
+        .piece:hover {
+            transform: scale(1.1);
+        }
+
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        #startBtn {
+            background: #667eea;
+            color: white;
+        }
+
+        #startBtn:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        #stopBtn {
+            background: #f56565;
+            color: white;
+        }
+
+        #stopBtn:hover:not(:disabled) {
+            background: #e53e3e;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
+        }
+
+        #resetBtn {
+            background: #48bb78;
+            color: white;
+        }
+
+        #resetBtn:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+            min-height: 24px;
+            text-align: center;
+        }
+
+        .status.listening {
+            background: #c3dafe;
+            color: #2c5282;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status.recording {
+            background: #fed7d7;
+            color: #742a2a;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status.processing {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .move-history {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .move-history h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .move-item {
+            padding: 8px;
+            background: white;
+            border-left: 3px solid #667eea;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        .move-item.voice {
+            border-left-color: #48bb78;
+        }
+
+        .move-item.error {
+            border-left-color: #f56565;
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #742a2a;
+            padding: 12px;
+            border-radius: 10px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .error.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 12px;
+            border-radius: 10px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .success.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .player-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .player-info .turn-indicator {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background: #48bb78;
+            animation: pulse-player 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-player {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .voice-command-guide {
+            background: #edf2f7;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #2d3748;
+            margin-top: 15px;
+        }
+
+        .voice-command-guide h5 {
+            margin: 0 0 8px 0;
+            color: #667eea;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .voice-command-guide ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .voice-command-guide li {
+            margin: 4px 0;
+            line-height: 1.4;
+        }
+
+        .language-selector {
+            background: #edf2f7;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .language-selector label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .language-selector select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            color: #2d3748;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .language-selector select:hover {
+            border-color: #667eea;
+        }
+
+        .language-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .mic-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #f56565;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .recognized-text {
+            background: #edf2f7;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #2d3748;
+            word-break: break-word;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        .recognized-text:empty::before {
+            content: 'Your speech will appear here...';
+            color: #a0aec0;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .square {
+                width: 50px;
+                height: 50px;
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>♟️ Speech Chess</h1>
+
+        <div class="main-grid">
+            <div class="board-section">
+                <div class="chessboard" id="chessboard"></div>
+            </div>
+
+            <div class="info-section">
+                <div id="playerInfo" class="player-info">
+                    <span class="turn-indicator"></span>
+                    <span id="playerTurn">White's Turn</span>
+                </div>
+
+                <div class="language-selector">
+                    <label for="languageSelect">🌐 Language:</label>
+                    <select id="languageSelect">
+                        <option value="en-US">English (US)</option>
+                        <option value="pt-BR">Português (Brasil)</option>
+                        <option value="pt-PT">Português (Portugal)</option>
+                    </select>
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn" onclick="startListening()">🎤 Start Listening</button>
+                    <button id="stopBtn" onclick="stopListening()" disabled>Stop Listening</button>
+                    <button id="resetBtn" onclick="resetBoard()">↻ Reset Board</button>
+                </div>
+
+                <div id="status" class="status"></div>
+
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #555;">Last Command:</label>
+                    <div id="recognized" class="recognized-text"></div>
+                </div>
+
+                <div id="error" class="error"></div>
+                <div id="success" class="success"></div>
+
+                <div class="move-history">
+                    <h4>Move History</h4>
+                    <div id="moves"></div>
+                </div>
+
+                <div class="voice-command-guide">
+                    <h5>💬 How to Play</h5>
+                    <ul>
+                        <li><strong>English:</strong> "e2 e4", "pawn d2 d4"</li>
+                        <li><strong>Português:</strong> "e2 e4", "peão d2 d4"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isListening = false;
+        let gameState = {
+            fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+            moves: [],
+            current_player: 'white'
+        };
+
+        const pieces = {
+            'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
+            'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
+        };
+
+        function fenToBoard(fen) {
+            const board = [];
+            const rows = fen.split(' ')[0].split('/');
+            
+            for (let row of rows) {
+                const boardRow = [];
+                for (let char of row) {
+                    if (isNaN(char)) {
+                        boardRow.push(char);
+                    } else {
+                        for (let i = 0; i < parseInt(char); i++) {
+                            boardRow.push('.');
+                        }
+                    }
+                }
+                board.push(boardRow);
+            }
+            return board;
+        }
+
+        function renderBoard() {
+            const board = fenToBoard(gameState.fen);
+            const chessboard = document.getElementById('chessboard');
+            chessboard.innerHTML = '';
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const isLight = (row + col) % 2 === 0;
+                    const square = document.createElement('div');
+                    square.className = `square ${isLight ? 'light' : 'dark'}`;
+                    square.id = `square-${col}${7-row}`;
+                    
+                    const piece = board[row][col];
+                    if (piece !== '.') {
+                        const pieceEl = document.createElement('div');
+                        pieceEl.className = 'piece';
+                        pieceEl.textContent = pieces[piece];
+                        square.appendChild(pieceEl);
+                    }
+
+                    chessboard.appendChild(square);
+                }
+            }
+            
+            // Force a reflow to ensure rendering
+            chessboard.offsetHeight;
+        }
+
+        function updatePlayerDisplay() {
+            const playerTurnEl = document.getElementById('playerTurn');
+            const playerInfo = document.getElementById('playerInfo');
+            
+            const playerName = gameState.current_player === 'white' ? 'White' : 'Black';
+            playerTurnEl.textContent = `${playerName}'s Turn`;
+            
+            // Color code the player info
+            if (gameState.current_player === 'white') {
+                playerInfo.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            } else {
+                playerInfo.style.background = 'linear-gradient(135deg, #333 0%, #555 100%)';
+            }
+        }
+
+        async function startListening() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await sendAudioToServer(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isListening = true;
+
+                const playerName = gameState.current_player === 'white' ? 'White' : 'Black';
+                const language = document.getElementById('languageSelect').value;
+                const langName = language.includes('pt') ? '🇵🇹' : '🇬🇧';
+                updateStatus('recording', `<span class="mic-indicator"></span> ${playerName} speaking... ${langName}`);
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                clearMessages();
+
+            } catch (error) {
+                showError('Microphone access denied. Please allow microphone access.');
+                console.error('Error accessing microphone:', error);
+            }
+        }
+
+        function stopListening() {
+            if (mediaRecorder && isListening) {
+                mediaRecorder.stop();
+                isListening = false;
+
+                updateStatus('processing', 'Processing move...');
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+
+        async function sendAudioToServer(audioBlob) {
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'audio.webm');
+                
+                // Get selected language
+                const language = document.getElementById('languageSelect').value;
+                formData.append('language', language);
+
+                const response = await fetch('/recognize', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                console.log('Response from server:', data);
+                console.log('Move made:', data.move);
+                console.log('Board FEN:', data.board);
+
+                document.getElementById('recognized').textContent = data.text;
+
+                if (data.success) {
+                    console.log('Success! Updating board...');
+                    
+                    // Update game state IMMEDIATELY
+                    gameState.fen = data.board;
+                    gameState.current_player = data.current_player;
+                    
+                    // Render board immediately
+                    renderBoard();
+                    updatePlayerDisplay();
+
+                    if (data.move) {
+                        console.log('Move successful:', data.move);
+                        showSuccess(`✓ Move made: ${data.move}`);
+                        addMoveToHistory(data.text, 'voice', data.move);
+                    } else if (data.error) {
+                        console.log('Move error:', data.error);
+                        showError(data.error);
+                        addMoveToHistory(data.text, 'error', null, data.error);
+                    } else if (data.feedback) {
+                        console.log('Feedback:', data.feedback);
+                        addMoveToHistory(data.text, 'voice');
+                    }
+                } else {
+                    console.log('Not successful:', data.error);
+                    if (data.error) {
+                        showError(data.error);
+                        addMoveToHistory(data.text || 'Unknown', 'error', null, data.error);
+                    }
+                    // Fetch updated game state
+                    const boardResponse = await fetch('/get-board');
+                    const boardData = await boardResponse.json();
+                    gameState.current_player = boardData.current_player;
+                    gameState.fen = boardData.fen;
+                    renderBoard();
+                    updatePlayerDisplay();
+                }
+
+                updateStatus('listening', '✓ Ready to listen');
+
+            } catch (error) {
+                console.error('Catch error:', error);
+                showError('Error: ' + error.message);
+                updateStatus('listening', '✓ Ready to listen');
+                console.error('Error:', error);
+            }
+        }
+
+        function updateStatus(type, message) {
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = message;
+            statusEl.className = 'status ' + type;
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = '❌ ' + message;
+            errorEl.classList.add('show');
+        }
+
+        function showSuccess(message) {
+            const successEl = document.getElementById('success');
+            successEl.textContent = message;
+            successEl.classList.add('show');
+            setTimeout(() => successEl.classList.remove('show'), 3000);
+        }
+
+        function clearMessages() {
+            document.getElementById('error').classList.remove('show');
+            document.getElementById('success').classList.remove('show');
+        }
+
+        function addMoveToHistory(text, type, move = '', error = '') {
+            const movesDiv = document.getElementById('moves');
+            const moveItem = document.createElement('div');
+            moveItem.className = `move-item ${type}`;
+            
+            let content = `"${text}"`;
+            if (move) {
+                content += ` → ${move}`;
+            }
+            if (error) {
+                content = `❌ "${text}" - ${error}`;
+            }
+            
+            moveItem.textContent = content;
+            movesDiv.insertBefore(moveItem, movesDiv.firstChild);
+
+            // Keep only last 10 moves
+            while (movesDiv.children.length > 10) {
+                movesDiv.removeChild(movesDiv.lastChild);
+            }
+        }
+
+        async function resetBoard() {
+            try {
+                const response = await fetch('/reset-board', { method: 'POST' });
+                const data = await response.json();
+                
+                gameState.fen = data.fen;
+                gameState.current_player = data.current_player;
+                renderBoard();
+                updatePlayerDisplay();
+                
+                document.getElementById('moves').innerHTML = '';
+                document.getElementById('recognized').textContent = '';
+                clearMessages();
+                
+                showSuccess('✓ Board reset - White to move');
+                updateStatus('listening', '✓ Ready to listen');
+            } catch (error) {
+                showError('Error resetting board: ' + error.message);
+            }
+        }
+
+        // Initialize
+        renderBoard();
+        updatePlayerDisplay();
+        updateStatus('listening', '✓ Ready to listen');
+    </script>
+</body>
+</html>
