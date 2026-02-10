@@ -2,7 +2,7 @@
 
 A real-time voice-controlled chess game built with Python Flask and Web Speech API. Play chess by speaking move commands!
 
-![alt text](image.png)
+![alt text](image/app.png)
 
 ## Features
 - Real-time voice recognition for chess moves
